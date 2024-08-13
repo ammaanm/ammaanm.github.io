@@ -1,0 +1,3 @@
+flet-contrib
+webcolors
+flet-pyodide
