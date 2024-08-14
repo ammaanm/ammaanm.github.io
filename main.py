@@ -3,13 +3,10 @@ import datetime
 import inspect
 import re
 import threading
-from asyncio import create_task, ensure_future, run, run_coroutine_threadsafe, wait_for
+from asyncio import ensure_future, run
 from itertools import islice
-from multiprocessing.dummy import Pool
 from typing import Any, Callable, Coroutine, Literal, Self
-# from fs import Storage
 
-# Storage("test")
 
 import flet as ft
 import flet_contrib.color_picker
@@ -31,11 +28,6 @@ def batched(iterable, n):
             return
         yield batch
 # from random import randint
-
-class a:
-    @SetterProperty
-    def abc(self, hello:str):
-        pass
 
     
 
@@ -236,18 +228,56 @@ async def get_theme_switch(page:ft.Page):
     await theme_changed(...)
     await theme_changed(...)
     return c
-async def get_settings_button(page:ft.Page):
+async def get_delete_button(page:ft.Page):
     def close_bs(e):
         page.close(bs)
     def open_bs(e):
         page.open(bs)
+    
+    def ask_delete_chart(e):
+        async def delete_chart(e):
+            close_bs1(...)
+            for i in await page.client_storage.get_keys_async(f"{NS}.chartdata.{e.control.data}"):
+                print(await page.client_storage.remove_async(i))
+            print(await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.min"))
+            print(await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.max"))
+            print(await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.color"))
+            print(await page.client_storage.remove_async(f"{NS}.chart.{e.control.data}"))
+
+            print(await page.client_storage.get_keys_async(f"{NS}"))
+            print(e.control.data)
+        
+            # e.control.page.remove(e.control)
+            # set_buttons()
+            # page.update()
+            page.go("/"+page.route)
+    
+        def close_bs1(e):
+            page.close(bs1)
+        def open_bs1(e):
+            page.open(bs1)
+        bs1 = ft.AlertDialog(
+            title=ft.Text("Are You Sure"),
+            actions=[
+                ft.ElevatedButton(text="Yes", data=e.control.data, color=ft.colors.RED, on_click=delete_chart),
+                ft.ElevatedButton(text="No", on_click=close_bs1),
+            ]
+        )
+        open_bs1(...)
+        
+    def set_buttons(*_):
+        print("Setting Buttons")
+        bs.content.controls = [
+                ft.ElevatedButton(snake2normal(i), data=normal2snake(i), on_click=ask_delete_chart) for i in charts.chart_names
+            ]
+        print(bs.content.controls)
+        page.update()
+        
+    charts = await getSortedCharts(page)
+    
     bs = ft.AlertDialog(
-        title=ft.Text("Settings", style=ft.TextStyle(weight=ft.FontWeight.BOLD)),
+        title=ft.Text("Delete Scales", style=ft.TextStyle(weight=ft.FontWeight.BOLD)),
         content=ft.Column(
-                    [
-                        await get_theme_switch(page),
-                        await get_search_bar(page),
-                    ],
                     tight=True,
                 ),
             actions=[
@@ -257,46 +287,40 @@ async def get_settings_button(page:ft.Page):
             ],
             open=False,
         )
+    charts.on_sort = set_buttons()
+    set_buttons()
     return ft.ElevatedButton(
-        "Settings",
+        "Delete Scales",
         on_click=open_bs,
         data=bs
         )
 
-def get_delete_chart_button(page:ft.Page, chart:ft.LineChart, chart_path:str):
-    def close_bs(e):
-        page.close(bs)
-    def open_bs(e):
-        page.open(bs)
-    def delete(e):
-        chart.parent.clean() #type:ignore
-        page.client_storage.remove(chart_path)
-        close_bs(...)
-    bs = ft.BottomSheet(
-                ft.Container(
-                    ft.Column(
+async def get_settings_button(page:ft.Page):
+    async def open_bs(e):
+        def close_bs(e):
+            page.close(bs)
+        bs = ft.AlertDialog(
+            title=ft.Text("Settings", style=ft.TextStyle(weight=ft.FontWeight.BOLD)),
+            content=ft.Column(
                         [
-                            ft.Text(f"Are You Shure You Want To Delete Chart `{chart_path.split('.')[-1]}`", style=ft.TextStyle(weight=ft.FontWeight.BOLD)),
-                            ft.Divider(),
-                            ft.ElevatedButton(
-                                "Yes", color=ft.colors.RED, on_click=delete
-                            ),
-                            ft.ElevatedButton(
-                                "No", on_click=close_bs
-                            ),
+                            await get_theme_switch(page),
+                            await get_search_bar(page),
+                            await get_delete_button(page),
                         ],
                         tight=True,
                     ),
-                    padding=10,
-                ),
+                actions=[
+                    ft.ElevatedButton(
+                                    "Back", on_click=close_bs
+                    )
+                ],
                 open=False,
             )
+        page.open(bs)
     return ft.ElevatedButton(
-        "Delete Chart",
-        color=ft.colors.RED,
+        "Settings",
         on_click=open_bs,
-        data=bs
-        )
+    )
 
 def change_route(e:ft.ControlEvent):
     page:ft.Page = e.page
@@ -317,9 +341,9 @@ async def main(page:ft.Page):
         await page.client_storage.set_async(NS, True)
         await page.client_storage.set_async(f"{NS}.mode", "dark")
         await page.client_storage.set_async(f"{NS}.theme", "cyan")
-        route = "/Add_Chart"
+        route = "/Add_Scale"
     if await page.client_storage.get_keys_async(f"{NS}.chart.") == []:
-        route = "/Add_Chart"
+        route = "/Add_Scale"
     else:
         route = "/Add_Values"
     # print(await page.client_storage.get_keys_async(f"{NS}.chart."))
@@ -349,6 +373,9 @@ async def main(page:ft.Page):
         # )
         # ft.View(page.route, [controls], appbar=appbar, navigation_bar=nav_bar)
         
+        if "/"+e.route.lstrip("/") != e.route:
+            page.go("/"+e.route.lstrip("/"))
+        
         appbar.title = ft.Text(
             snake2normal(page.route.split("/")[-1]), 
             style=ft.TextStyle(weight=ft.FontWeight.BOLD))
@@ -363,7 +390,7 @@ async def main(page:ft.Page):
                         value: int = slider.value
                         # print(NS+".stats."+name)
                         await page.client_storage.set_async(f"{NS}.chartdata.{name}.{time}", value)
-                        page.go("/View_Charts")
+                        page.go("/View_Scales")
                         FixNavBar()
                 
                 async def place_slider(key):
@@ -414,7 +441,7 @@ async def main(page:ft.Page):
                     navigation_bar=nav_bar
                 ))
                 ensure_future(place_sliders(charts))
-            case "/Add_Chart":
+            case "/Add_Scale":
                 async def submit(e):
                     if not is_valid_chart_name(name.value):
                         page.open(
@@ -483,7 +510,7 @@ async def main(page:ft.Page):
                     appbar=appbar, 
                     navigation_bar=nav_bar
                 ))
-            case "/View_Charts":
+            case "/View_Scales":
                 async def get_charts(*_):
                     async def get_chart(key):
                         # print("1")
@@ -566,6 +593,8 @@ async def main(page:ft.Page):
                         navigation_bar=nav_bar,
                     )
                 )
+            case "/":
+                pass
             case a:
                 raise KeyError(f"Page '{a}' not found")
                 pass
@@ -606,12 +635,12 @@ async def main(page:ft.Page):
                 selected_icon=ft.icons.ADD_BOX_OUTLINED
                 ),
             ft.NavigationBarDestination(
-                "Add Chart",
+                "Add Scale",
                 icon=ft.icons.NOTE_ADD,
                 selected_icon=ft.icons.NOTE_ADD_OUTLINED
                 ),
             ft.NavigationBarDestination(
-                "View Charts", 
+                "View Scales", 
                 icon=ft.icons.INSERT_CHART_ROUNDED,
                 selected_icon=ft.icons.INSERT_CHART_OUTLINED_ROUNDED
                 ),
