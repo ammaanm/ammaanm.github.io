@@ -35,7 +35,7 @@ jobs:
     - name: Install Deps
       run: pip install flet
     - name: Build
-      run: python -m flet.cli.cli publish main.py --route-url-strategy hash
+      run: python -m flet.cli.cli publish --route-url-strategy hash main.py
     - name: Setup Pages
       id: pages
       uses: actions/configure-pages@v5
@@ -43,8 +43,6 @@ jobs:
       uses: actions/upload-pages-artifact@v3
       with:
         path: ./dist
-    - name: ls
-      run: ls ./dist | echo
 
 
 
