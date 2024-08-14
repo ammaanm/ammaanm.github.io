@@ -44,7 +44,7 @@ jobs:
       with:
         path: ./dist
     - name: ls
-      -run: ls ./dist | echo
+      run: ls ./dist | echo
 
 
 
