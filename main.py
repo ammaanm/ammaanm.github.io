@@ -11,6 +11,7 @@ from typing import Any, Callable, Coroutine, Literal, Self
 import flet as ft
 import flet_contrib.color_picker
 from webcolors import name_to_hex
+name2hex: Callable[[str], str] = lambda a: a if a.startswith("#") and (len(a)-1) in (3, 6) else name_to_hex(a)
 
 class SetterProperty(object):
     def __init__(self, func, doc=None):
@@ -155,7 +156,7 @@ COLORS = [
     "indigo", 
     "blue", 
     "lightblue", 
-    "cyan", 
+    "#c3c3c3", 
     "teal", 
     "green", 
     "lightgreen", 
@@ -176,8 +177,9 @@ snake2normal = lambda a: a.replace("_", " ")
 normal2snake = lambda a: a.replace(" ", "_")
 
 async def get_search_bar(page:ft.Page):
-    def close_anchor(e):
+    async def close_anchor(e):
         anchor.close_view(e.control.data)
+        await handle_submit(..., e.control.data)
 
     def open_anchor(e):
         anchor.open_view()
@@ -185,21 +187,22 @@ async def get_search_bar(page:ft.Page):
     # def handle_submit(e):
     #     run(handle_submit_async(e))
     async def handle_submit(e):
-        page.theme = ft.Theme(e.control.value)
-        anchor.bar_bgcolor = "#10"+name_to_hex(e.control.value)[1:]
-        await page.client_storage.set_async(f"{NS}.theme", e.control.value)
+        # color = getattr(e.control, "value", text)
+        color = anchor.value or "Cyan"
+        page.theme = ft.Theme(name2hex(color))
+        anchor.bar_bgcolor = "#10"+name2hex(color)[1:]
+        await page.client_storage.set_async(f"{NS}.theme", color)
         page.update()
-    
-    page.theme = ft.Theme(await page.client_storage.get_async(f"{NS}.theme"))
 
     anchor = ft.SearchBar(
         value=await page.client_storage.get_async(f"{NS}.theme"),
-        bar_bgcolor="#99"+name_to_hex(await page.client_storage.get_async(f"{NS}.theme"))[1:], #type:ignore
+        bar_bgcolor="#99"+name2hex(await page.client_storage.get_async(f"{NS}.theme"))[1:], #type:ignore
         view_elevation=4,
         divider_color=ft.colors.PRIMARY_CONTAINER,
-        bar_hint_text="Choose theme color...",
-        view_hint_text="Choose theme color...",
+        bar_hint_text="Choose Theme Color...",
+        view_hint_text="Or Type Any Color (From CSS3)",
         on_submit=handle_submit,
+        on_change=handle_submit,
         on_tap=open_anchor,
         controls=[
             ft.ListTile(title=ft.Text(i), on_click=close_anchor, data=i)
@@ -223,7 +226,6 @@ async def get_theme_switch(page:ft.Page):
         await page.client_storage.set_async(f"{NS}.mode", page.theme_mode.value)
         page.update()
 
-    page.theme_mode = ft.ThemeMode(await page.client_storage.get_async(f"{NS}.mode"))
     c = ft.Switch(on_change=theme_changed)
     await theme_changed(...)
     await theme_changed(...)
@@ -279,6 +281,8 @@ async def get_delete_button(page:ft.Page):
         title=ft.Text("Delete Scales", style=ft.TextStyle(weight=ft.FontWeight.BOLD)),
         content=ft.Column(
                     tight=True,
+                    expand=True,
+                    scroll=ft.ScrollMode.ADAPTIVE
                 ),
             actions=[
                 ft.ElevatedButton(
@@ -331,6 +335,8 @@ def change_route(e:ft.ControlEvent):
 
 async def main(page:ft.Page):
     page.title = "Test Title 123"
+    page.theme = ft.Theme(name2hex(await page.client_storage.get_async(f"{NS}.theme")))
+    page.theme_mode = ft.ThemeMode(await page.client_storage.get_async(f"{NS}.mode"))
     def FixNavBar():
         toSnake = lambda a: normal2snake(a.label)
         snake = tuple(map(toSnake, nav_bar.destinations)) #type:ignore
@@ -421,7 +427,7 @@ async def main(page:ft.Page):
                     page.update()
                     pass
                 
-                sliders = ft.Column([])
+                sliders = ft.Column([], expand=True, scroll=ft.ScrollMode.ADAPTIVE)
                 charts = await getSortedCharts(page)
                 charts.on_sort = place_sliders
                 
@@ -575,7 +581,7 @@ async def main(page:ft.Page):
                 chart_sort = await getSortedCharts(page)
                 
                 charts_ = ft.Column(
-                                scroll=ft.ScrollMode.ALWAYS,
+                                scroll=ft.ScrollMode.ADAPTIVE,
                                 expand=True
                 )
                 charts_.controls = await get_charts() #type:ignore
