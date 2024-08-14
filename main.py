@@ -1,8 +1,6 @@
-#Hello
 import datetime
 import inspect
 import re
-import threading
 from asyncio import ensure_future, run
 from itertools import islice
 from typing import Any, Callable, Coroutine, Literal, Self
@@ -11,6 +9,7 @@ from typing import Any, Callable, Coroutine, Literal, Self
 import flet as ft
 import flet_contrib.color_picker
 from webcolors import name_to_hex
+
 name2hex: Callable[[str], str] = lambda a: a if a.startswith("#") and (len(a)-1) in (3, 6) else name_to_hex(a)
 
 class SetterProperty(object):
@@ -45,7 +44,6 @@ DATE_FORMAT ="%b %a %d, %H:%M"
 NS = "andrey_ma.stat_tracker"
 
 async def getChartValues(page:ft.Page, chart:str):
-    print(*map(lambda a: a.split(".")[-1], sorted(await page.client_storage.get_keys_async(f"{NS}.chartdata.{chart}"))))
     for key in sorted(await page.client_storage.get_keys_async(f"{NS}.chartdata.{chart}")):
         yield (
             key.split(".")[-1],
@@ -103,7 +101,6 @@ async def getSortedCharts(page: ft.Page, default_sort:Literal["time","a-z"] = "a
         @SetterProperty
         def on_sort(self, value:Callable[[Self], None]|Coroutine):
             self.__on_sort = value
-            print(value)
     
     # charts = SortedValues({
     #     a:
@@ -156,7 +153,6 @@ COLORS = [
     "indigo", 
     "blue", 
     "lightblue", 
-    "#c3c3c3", 
     "teal", 
     "green", 
     "lightgreen", 
@@ -184,10 +180,7 @@ async def get_search_bar(page:ft.Page):
     def open_anchor(e):
         anchor.open_view()
 
-    # def handle_submit(e):
-    #     run(handle_submit_async(e))
     async def handle_submit(e):
-        # color = getattr(e.control, "value", text)
         color = anchor.value or "Cyan"
         page.theme = ft.Theme(name2hex(color))
         anchor.bar_bgcolor = "#10"+name2hex(color)[1:]
@@ -212,8 +205,6 @@ async def get_search_bar(page:ft.Page):
     
     return anchor
 async def get_theme_switch(page:ft.Page):
-    # def theme_changed(e):
-    #     print(run(theme_changed_async(e)))
     async def theme_changed(e):
         page.theme_mode = (
             ft.ThemeMode.DARK
@@ -227,9 +218,11 @@ async def get_theme_switch(page:ft.Page):
         page.update()
 
     c = ft.Switch(on_change=theme_changed)
-    await theme_changed(...)
-    await theme_changed(...)
+    c.label = (
+            "Light mode" if page.theme_mode == ft.ThemeMode.LIGHT else "Dark mode"
+        )
     return c
+
 async def get_delete_button(page:ft.Page):
     def close_bs(e):
         page.close(bs)
@@ -239,19 +232,15 @@ async def get_delete_button(page:ft.Page):
     def ask_delete_chart(e):
         async def delete_chart(e):
             close_bs1(...)
-            for i in await page.client_storage.get_keys_async(f"{NS}.chartdata.{e.control.data}"):
-                print(await page.client_storage.remove_async(i))
-            print(await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.min"))
-            print(await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.max"))
-            print(await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.color"))
-            print(await page.client_storage.remove_async(f"{NS}.chart.{e.control.data}"))
+            # for i in await page.client_storage.get_keys_async(f"{NS}.chartdata.{e.control.data}"):
+            #     print(await page.client_storage.remove_async(i))
+            await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.min")
+            await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.max")
+            await page.client_storage.remove_async(f"{NS}.chartstats.{e.control.data}.color")
+            await page.client_storage.remove_async(f"{NS}.chart.{e.control.data}")
 
-            print(await page.client_storage.get_keys_async(f"{NS}"))
-            print(e.control.data)
+            await page.client_storage.get_keys_async(f"{NS}")
         
-            # e.control.page.remove(e.control)
-            # set_buttons()
-            # page.update()
             page.go("/"+page.route)
     
         def close_bs1(e):
@@ -268,11 +257,9 @@ async def get_delete_button(page:ft.Page):
         open_bs1(...)
         
     def set_buttons(*_):
-        print("Setting Buttons")
         bs.content.controls = [
                 ft.ElevatedButton(snake2normal(i), data=normal2snake(i), on_click=ask_delete_chart) for i in charts.chart_names
             ]
-        print(bs.content.controls)
         page.update()
         
     charts = await getSortedCharts(page)
@@ -330,8 +317,6 @@ def change_route(e:ft.ControlEvent):
     page:ft.Page = e.page
     nav_bar: ft.NavigationBar = e.control
     page.go("/"+normal2snake(nav_bar.destinations[nav_bar.selected_index].label)) #type:ignore
-    # ft.NavigationBar().destinations[1].label
-    # page.route = f"/{e.data}"
 
 async def main(page:ft.Page):
     page.title = "Test Title 123"
@@ -352,9 +337,7 @@ async def main(page:ft.Page):
         route = "/Add_Scale"
     else:
         route = "/Add_Values"
-    # print(await page.client_storage.get_keys_async(f"{NS}.chart."))
-    # page.client_storage.set(NS+".stats.Hello", [1, 25, "yellow", datetime.datetime(2024,1,1,1).timestamp(), 1, datetime.datetime(2024,1,1,20).timestamp(), 10, datetime.datetime(2024,1,3,0).timestamp(), 5])
-    # page.client_storage.set(NS+".stats.5", [1, 5, "#c3c3c3", datetime.datetime(2024,1,1,1).timestamp(), 1, datetime.datetime(2024,1,1,20).timestamp(), 3, datetime.datetime(2024,1,3,0).timestamp(), 5])
+
     async def on_route_change(e:ft.RouteChangeEvent):
         page.views.clear()
         
@@ -394,17 +377,14 @@ async def main(page:ft.Page):
                         text, slider = i.controls
                         name: str = normal2snake(text.value)
                         value: int = slider.value
-                        # print(NS+".stats."+name)
                         await page.client_storage.set_async(f"{NS}.chartdata.{name}.{time}", value)
                         page.go("/View_Scales")
                         FixNavBar()
                 
                 async def place_slider(key):
-                    # print(key)
                     min_y:int = await page.client_storage.get_async(f"{NS}.chartstats.{key}.min") #type:ignore
                     max_y:int = await page.client_storage.get_async(f"{NS}.chartstats.{key}.max") #type:ignore
                     color = await page.client_storage.get_async(f"{NS}.chartstats.{key}.color")
-                    print(min_y,max_y)
                     return ft.Row(
                             [
                                 ft.Text(snake2normal(key)),
@@ -423,7 +403,6 @@ async def main(page:ft.Page):
                     
                 async def place_sliders(charts):
                     sliders.controls = [await place_slider(key) for key in charts.chart_names]
-                    print(charts.chart_names)
                     page.update()
                     pass
                 
@@ -519,16 +498,12 @@ async def main(page:ft.Page):
             case "/View_Scales":
                 async def get_charts(*_):
                     async def get_chart(key):
-                        # print("1")
                         name = snake2normal(key)
                         min_y:int = await page.client_storage.get_async(f"{NS}.chartstats.{key}.min") #type:ignore
                         max_y:int = await page.client_storage.get_async(f"{NS}.chartstats.{key}.max") #type:ignore
                         color = await page.client_storage.get_async(f"{NS}.chartstats.{key}.color")
-                        # print("2")
                         values = getChartValues(page, key)
-                        
-                        # print()
-                        
+                                                
                         try:
                             data = ft.LineChartData(
                                             [
@@ -570,9 +545,6 @@ async def main(page:ft.Page):
                     
                     charts = [await get_chart(a) for a in chart_sort.chart_names]
                     
-                    # for key in map(lambda a: f"{NS}.charts."+a, await page.client_storage.get_async(f"{NS}.stats")): #type:ignore
-                    #     print(key)
-                    # print(_, chart_sort.chart_names, *map(lambda a: a.controls[0].value,charts))
                     if _:
                         charts_.controls = charts
                         page.update()
@@ -605,22 +577,9 @@ async def main(page:ft.Page):
                 raise KeyError(f"Page '{a}' not found")
                 pass
         
-        # nav_bar.selected_index = \
-        #     tuple(map(lambda a: a.label.title().replace(" ", ""), nav_bar.destinations)) \
-        #         .index(page.route.split("/")[-1])
         page.update()
     
-    # def pop_view(e:ft.ViewPopEvent):
-    #     page.views.pop()
-        # top_view: ft.View = page.views[-1]
         
-        # toCamel = lambda a: snake2camel(a.label)
-        # camel = tuple(map(toCamel, nav_bar.destinations)) #type:ignore
-        
-        # nav_bar.selected_index = \
-        #     camel.index(top_view.route.split("/")[-1]) #type:ignore
-        # page.go(top_view.route) #type:ignore
-    
     appbar = ft.AppBar(
             actions=[
                 await get_settings_button(page)
@@ -630,11 +589,6 @@ async def main(page:ft.Page):
     
     nav_bar = ft.NavigationBar(
         [
-            # ft.NavigationBarDestination( #T0DO Home Page
-            #     "Home",
-            #     icon=ft.icons.HOME,
-            #     selected_icon=ft.icons.HOME_OUTLINED
-            #     ),
             ft.NavigationBarDestination(
                 "Add Values",
                 icon=ft.icons.ADD_BOX_ROUNDED,
@@ -655,7 +609,6 @@ async def main(page:ft.Page):
     )
     
     page.on_route_change = on_route_change
-    # page.on_view_pop = pop_view
     
     page.go(route)
     
