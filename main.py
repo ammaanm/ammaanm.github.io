@@ -10,7 +10,7 @@ import flet as ft
 import flet_contrib.color_picker
 from webcolors import name_to_hex
 
-name2hex: Callable[[str], str] = lambda a: a if (a or "cyan").startswith("#") and (len(a)-1) in (3, 6) else name_to_hex(a)
+name2hex: Callable[[str], str] = lambda a: (a or "cyan") if (a or "cyan").startswith("#") and (len(a)-1) in (3, 6) else name_to_hex(a or "cyan")
 
 class SetterProperty(object):
     def __init__(self, func, doc=None):
