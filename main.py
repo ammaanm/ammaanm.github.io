@@ -39,8 +39,8 @@ def batched(iterable, n):
 
 
 # BOTTOM_PAGE = "/AddValues"
-# DATE_FORMAT ="%b %a %d, %I:%M %p %Y"
-DATE_FORMAT ="%b %a %d, %H:%M"
+# DATE_FORMAT ="%b %a %d, %I:%M %p %Y" # Aug Fri 16, 03:03 PM 2024
+DATE_FORMAT = "%b %d, %H:%M" # Aug 16, 15:04
 NS = "andrey_ma.stat_tracker"
 
 async def getChartValues(page:ft.Page, chart:str):
@@ -477,7 +477,7 @@ async def main(page:ft.Page):
                     await page.client_storage.set_async(f"{NS}.chartstats.{normal2snake(name.value)}.min", round(range.start_value)) 
                     await page.client_storage.set_async(f"{NS}.chartstats.{normal2snake(name.value)}.max", round(range.end_value)) 
                     await page.client_storage.set_async(f"{NS}.chartstats.{normal2snake(name.value)}.color", color.data) 
-                    await page.client_storage.set_async(f"{NS}.chart."+normal2snake(name.value), [round(range.start_value), round(range.end_value), color.data])
+                    await page.client_storage.set_async(f"{NS}.chart."+normal2snake(name.value), datetime.datetime.now().timestamp())
                     page.go("/Add_Values")
                     FixNavBar()
                 name = ft.TextField(label="Enter Chart Name...",hint_text="Sleep Time")
