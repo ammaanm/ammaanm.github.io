@@ -84,7 +84,7 @@ async def getSortedCharts(page: ft.Page, default_sort:Literal["time","a-z"] = "a
         async def sort(self, e):
             sort = e.control.label.value
             if sort.rstrip("+-").lower() == self.__values.sort[0]:
-                self.__values.sort = self.__values.sort[0].lower(), not self.__values.sort[1] #type:ignore
+                self.__values.sort = (self.__values.sort[0] or "").lower(), not self.__values.sort[1] #type:ignore
             else:
                 self.__values.sort = sort.rstrip("+-").lower(), False
             for cont in self.row.controls:
