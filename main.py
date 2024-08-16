@@ -319,9 +319,9 @@ def change_route(e:ft.ControlEvent):
     page.go("/"+normal2snake(nav_bar.destinations[nav_bar.selected_index].label)) #type:ignore
 
 async def main(page:ft.Page):
-    page.title = "Test Title 123"
-    page.theme = ft.Theme(name2hex(await page.client_storage.get_async(f"{NS}.theme")))
-    page.theme_mode = ft.ThemeMode(await page.client_storage.get_async(f"{NS}.mode"))
+    page.title = "Scale Tracker"
+    page.theme = ft.Theme(name2hex(await page.client_storage.get_async(f"{NS}.theme")) or "dark")
+    page.theme_mode = ft.ThemeMode(await page.client_storage.get_async(f"{NS}.mode") or "cyan")
     def FixNavBar():
         toSnake = lambda a: normal2snake(a.label)
         snake = tuple(map(toSnake, nav_bar.destinations)) #type:ignore
